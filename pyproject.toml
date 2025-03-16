@@ -1,0 +1,53 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pyproject_aliases"
+dynamic = ["version"]
+description = "A simple tool to manage aliases in pyproject.toml"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICEN[CS]E.*"]
+authors = [{ name = "Thomas Kristensen", email = "thomas@sl.m04r.space" }]
+requires-python = ">=3.11"
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/tkk2112/pyproject_aliases"
+Issues = "https://github.com/tkk2112/pyproject_aliases/issues"
+Repository = "https://github.com/tkk2112/pyproject_aliases.git"
+
+[project.scripts]
+alias = "pyproject_aliases:main.main"
+
+[tool.hatch.version]
+path = "src/pyproject_aliases/__init__.py"
+
+[tool.isort]
+profile = "black"
+line_length = 158
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = ["tests"]
+addopts = "--strict-markers --cov=pyproject_aliases --cov-branch --cov-report term --cov-report html"
+
+[tool.mypy]
+python_version = "3.11"
+check_untyped_defs = true
+disallow_incomplete_defs = true
+ignore_missing_imports = true
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.1.0",
+    "pytest>=7.0.0",
+    "pytest-cov>=6.0.0",
+    "hatch>=1.14.0",
+    "mypy>=1.15.0",
+]
+
+[tool.aliases]
+check = "uv run pre-commit run --all-files"
+test = "uv run pytest"
