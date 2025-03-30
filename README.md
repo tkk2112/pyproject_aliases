@@ -1,4 +1,6 @@
-# pyproject_aliases
+[//]: # (x-release-please-start-version)
+# pyproject_aliases 0.1.0
+[//]: # (x-release-please-end)
 
 A simple tool to manage aliases in pyproject.toml
 
