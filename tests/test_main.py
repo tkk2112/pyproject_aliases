@@ -1,5 +1,5 @@
 import tomllib
-from typing import Dict, Generator, List, Tuple
+from collections.abc import Generator
 from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
@@ -13,7 +13,7 @@ from pyproject_aliases.main import (
 
 
 @pytest.fixture
-def mock_config_data() -> Dict[str, Dict[str, Dict[str, str]]]:
+def mock_config_data() -> dict[str, dict[str, dict[str, str]]]:
     return {"tool": {"aliases": {"test-alias": "echo 'Hello, World!'"}}}
 
 
@@ -52,10 +52,10 @@ class TestParseArgs:
     )
     def test_parse_args(
         self,
-        argv: List[str],
+        argv: list[str],
         expected_toml: str,
         expected_alias: str | None,
-        expected_extra_args: List[str],
+        expected_extra_args: list[str],
     ) -> None:
         with patch("sys.argv", argv):
             args = parse_args()
@@ -66,7 +66,8 @@ class TestParseArgs:
 
 class TestGetAllAliases:
     def test_aliases_found(
-        self, mock_config_data: Dict[str, Dict[str, Dict[str, str]]]
+        self,
+        mock_config_data: dict[str, dict[str, dict[str, str]]],
     ) -> None:
         with (
             patch("builtins.open", mock_open()) as mock_file,
@@ -93,7 +94,10 @@ class TestGetAllAliases:
         ],
     )
     def test_get_all_aliases_error_cases(
-        self, error_case: str, exception: BaseException, expected_exit_code: int
+        self,
+        error_case: str,
+        exception: BaseException,
+        expected_exit_code: int,
     ) -> None:
         with patch("builtins.open") as mock_open_func:
             if error_case == "file_not_found":
@@ -111,7 +115,8 @@ class TestGetAllAliases:
 
 class TestGetAliasFromConfig:
     def test_alias_found(
-        self, mock_config_data: Dict[str, Dict[str, Dict[str, str]]]
+        self,
+        mock_config_data: dict[str, dict[str, dict[str, str]]],
     ) -> None:
         with (
             patch("builtins.open", mock_open()) as mock_file,
@@ -134,7 +139,7 @@ class TestGetAliasFromConfig:
         error_case: str,
         exception: BaseException | None,
         expected_exit_code: int,
-        mock_config_data: Dict[str, Dict[str, Dict[str, str]]],
+        mock_config_data: dict[str, dict[str, dict[str, str]]],
     ) -> None:
         if error_case == "alias_not_found":
             with (
@@ -165,7 +170,7 @@ class TestMain:
     @pytest.fixture
     def mock_main_dependencies(
         self,
-    ) -> Generator[Tuple[MagicMock, MagicMock, MagicMock, MagicMock], None, None]:
+    ) -> Generator[tuple[MagicMock, MagicMock, MagicMock, MagicMock]]:
         with (
             patch("pyproject_aliases.main.parse_args") as mock_parse_args,
             patch("pyproject_aliases.main.get_alias_from_config") as mock_get_alias,
@@ -175,12 +180,15 @@ class TestMain:
             yield mock_parse_args, mock_get_alias, mock_get_all, mock_run
 
     def test_successful_execution(
-        self, mock_main_dependencies: Tuple[MagicMock, MagicMock, MagicMock, MagicMock]
+        self,
+        mock_main_dependencies: tuple[MagicMock, MagicMock, MagicMock, MagicMock],
     ) -> None:
         mock_parse_args, mock_get_alias, _, mock_run = mock_main_dependencies
 
         mock_parse_args.return_value = MagicMock(
-            pyproject_toml="pyproject.toml", alias="test-alias", extra_args=[]
+            pyproject_toml="pyproject.toml",
+            alias="test-alias",
+            extra_args=[],
         )
         mock_get_alias.return_value = "echo 'Hello, World!'"
         mock_run.return_value = MagicMock(returncode=0)
@@ -189,11 +197,15 @@ class TestMain:
             main()
         assert excinfo.value.code == 0
         mock_run.assert_called_once_with(
-            "echo 'Hello, World!'", shell=True, text=True, check=False
+            "echo 'Hello, World!'",
+            shell=True,
+            text=True,
+            check=False,
         )
 
     def test_execution_with_extra_args(
-        self, mock_main_dependencies: Tuple[MagicMock, MagicMock, MagicMock, MagicMock]
+        self,
+        mock_main_dependencies: tuple[MagicMock, MagicMock, MagicMock, MagicMock],
     ) -> None:
         mock_parse_args, mock_get_alias, _, mock_run = mock_main_dependencies
 
@@ -210,16 +222,22 @@ class TestMain:
         assert excinfo.value.code == 0
         # shlex.quote() doesn't quote simple arguments without spaces or special chars
         mock_run.assert_called_once_with(
-            "echo arg1 'arg with space'", shell=True, text=True, check=False
+            "echo arg1 'arg with space'",
+            shell=True,
+            text=True,
+            check=False,
         )
 
     def test_failed_execution(
-        self, mock_main_dependencies: Tuple[MagicMock, MagicMock, MagicMock, MagicMock]
+        self,
+        mock_main_dependencies: tuple[MagicMock, MagicMock, MagicMock, MagicMock],
     ) -> None:
         mock_parse_args, mock_get_alias, _, mock_run = mock_main_dependencies
 
         mock_parse_args.return_value = MagicMock(
-            pyproject_toml="pyproject.toml", alias="test-alias", extra_args=[]
+            pyproject_toml="pyproject.toml",
+            alias="test-alias",
+            extra_args=[],
         )
         mock_get_alias.return_value = "invalid_command"
         mock_run.return_value = MagicMock(returncode=127)
@@ -229,12 +247,15 @@ class TestMain:
         assert excinfo.value.code == 127
 
     def test_execution_exception(
-        self, mock_main_dependencies: Tuple[MagicMock, MagicMock, MagicMock, MagicMock]
+        self,
+        mock_main_dependencies: tuple[MagicMock, MagicMock, MagicMock, MagicMock],
     ) -> None:
         mock_parse_args, mock_get_alias, _, mock_run = mock_main_dependencies
 
         mock_parse_args.return_value = MagicMock(
-            pyproject_toml="pyproject.toml", alias="test-alias", extra_args=[]
+            pyproject_toml="pyproject.toml",
+            alias="test-alias",
+            extra_args=[],
         )
         mock_get_alias.return_value = "some_command"
         mock_run.side_effect = Exception("Execution failed")
@@ -244,12 +265,15 @@ class TestMain:
         assert excinfo.value.code == 1
 
     def test_no_alias_provided(
-        self, mock_main_dependencies: Tuple[MagicMock, MagicMock, MagicMock, MagicMock]
+        self,
+        mock_main_dependencies: tuple[MagicMock, MagicMock, MagicMock, MagicMock],
     ) -> None:
         mock_parse_args, _, mock_get_all, _ = mock_main_dependencies
 
         mock_parse_args.return_value = MagicMock(
-            pyproject_toml="pyproject.toml", alias=None, extra_args=[]
+            pyproject_toml="pyproject.toml",
+            alias=None,
+            extra_args=[],
         )
         mock_get_all.return_value = {"test-alias": "echo 'Hello, World!'"}
 
@@ -259,13 +283,16 @@ class TestMain:
         mock_get_all.assert_called_once_with("pyproject.toml")
 
     def test_no_aliases_defined(
-        self, mock_main_dependencies: Tuple[MagicMock, MagicMock, MagicMock, MagicMock]
+        self,
+        mock_main_dependencies: tuple[MagicMock, MagicMock, MagicMock, MagicMock],
     ) -> None:
         """Test when no aliases are defined in the configuration."""
         mock_parse_args, _, mock_get_all, _ = mock_main_dependencies
 
         mock_parse_args.return_value = MagicMock(
-            pyproject_toml="pyproject.toml", alias=None, extra_args=[]
+            pyproject_toml="pyproject.toml",
+            alias=None,
+            extra_args=[],
         )
         mock_get_all.return_value = {}  # Empty aliases dictionary
 
