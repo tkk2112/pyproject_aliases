@@ -24,6 +24,18 @@ alias = "pyproject_aliases:main.main"
 [tool.hatch.version]
 path = "src/pyproject_aliases/__init__.py"
 
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true
+
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple/"
+publish-url = "https://upload.pypi.org/legacy/"
+explicit = true
+
 [tool.isort]
 profile = "black"
 line_length = 158

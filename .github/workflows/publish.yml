@@ -1,0 +1,56 @@
+name: publish pyproject_aliases
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Deployment target environment"
+        required: true
+        default: "testpypi"
+
+concurrency:
+  group: "publish-${{ github.ref }}"
+  cancel-in-progress: false
+
+jobs:
+  run-tests:
+    uses: ./.github/workflows/reusable-test.yml
+
+  verify-tests:
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    needs: run-tests
+    steps:
+      - run: exit 1
+        if: ${{ contains(toJSON(needs.*.result), 'failure') || contains(toJSON(needs.*.result), 'cancelled') }}
+
+  deploy:
+    needs: [verify-tests]
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event.inputs.target || 'pypi' }}
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: install dependencies
+        run: |
+          uv sync --locked
+
+      - name: build package
+        run: |
+          uv build
+
+      - name: "publish package (index: ${{ github.event.inputs.target || 'pypi' }})"
+        env:
+          UV_PUBLISH_INDEX: ${{ github.event.inputs.target || 'pypi' }}
+        run: |
+          uv publish --trusted-publishing always
