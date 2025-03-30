@@ -4,12 +4,12 @@ import shlex
 import subprocess
 import sys
 import tomllib
-from typing import Dict, cast
+from typing import cast
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Execute aliases defined in pyproject.toml"
+        description="Execute aliases defined in pyproject.toml",
     )
     parser.add_argument(
         "--pyproject-toml",
@@ -25,13 +25,13 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def get_all_aliases(config_file: str) -> Dict[str, str]:
+def get_all_aliases(config_file: str) -> dict[str, str]:
     try:
         with open(config_file, "rb") as f:
             config = tomllib.load(f)
 
         if "tool" in config and "aliases" in config["tool"]:
-            return cast(Dict[str, str], config["tool"]["aliases"])
+            return cast(dict[str, str], config["tool"]["aliases"])
         return {}
     except FileNotFoundError:
         print(f"Config file not found: {config_file}", file=sys.stderr)
@@ -83,7 +83,7 @@ def main() -> None:
     alias_to_run = get_alias_from_config(args.pyproject_toml, args.alias)
 
     if args.extra_args:
-        extra_args_str = " ".join(shlex.quote(arg) for arg in args.extra_args)
+        extra_args_str = shlex.join(args.extra_args)
         command = f"{alias_to_run} {extra_args_str}"
     else:
         command = alias_to_run
