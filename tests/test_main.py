@@ -1,10 +1,13 @@
 import tomllib
 from collections.abc import Generator
+from pathlib import Path
 from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
+from pyfakefs.fake_filesystem import FakeFilesystem
 
 from pyproject_aliases.main import (
+    find_pyproject_toml,
     get_alias_from_config,
     get_all_aliases,
     main,
@@ -170,20 +173,33 @@ class TestMain:
     @pytest.fixture
     def mock_main_dependencies(
         self,
-    ) -> Generator[tuple[MagicMock, MagicMock, MagicMock, MagicMock]]:
+    ) -> Generator[tuple[MagicMock, MagicMock, MagicMock, MagicMock, MagicMock],]:
         with (
             patch("pyproject_aliases.main.parse_args") as mock_parse_args,
             patch("pyproject_aliases.main.get_alias_from_config") as mock_get_alias,
             patch("pyproject_aliases.main.get_all_aliases") as mock_get_all,
+            patch("pyproject_aliases.main.find_pyproject_toml") as mock_find_pyproject,
             patch("subprocess.run") as mock_run,
         ):
-            yield mock_parse_args, mock_get_alias, mock_get_all, mock_run
+            yield (
+                mock_parse_args,
+                mock_get_alias,
+                mock_get_all,
+                mock_find_pyproject,
+                mock_run,
+            )
 
     def test_successful_execution(
         self,
-        mock_main_dependencies: tuple[MagicMock, MagicMock, MagicMock, MagicMock],
+        mock_main_dependencies: tuple[
+            MagicMock,
+            MagicMock,
+            MagicMock,
+            MagicMock,
+            MagicMock,
+        ],
     ) -> None:
-        mock_parse_args, mock_get_alias, _, mock_run = mock_main_dependencies
+        mock_parse_args, mock_get_alias, _, _, mock_run = mock_main_dependencies
 
         mock_parse_args.return_value = MagicMock(
             pyproject_toml="pyproject.toml",
@@ -205,9 +221,15 @@ class TestMain:
 
     def test_execution_with_extra_args(
         self,
-        mock_main_dependencies: tuple[MagicMock, MagicMock, MagicMock, MagicMock],
+        mock_main_dependencies: tuple[
+            MagicMock,
+            MagicMock,
+            MagicMock,
+            MagicMock,
+            MagicMock,
+        ],
     ) -> None:
-        mock_parse_args, mock_get_alias, _, mock_run = mock_main_dependencies
+        mock_parse_args, mock_get_alias, _, _, mock_run = mock_main_dependencies
 
         mock_parse_args.return_value = MagicMock(
             pyproject_toml="pyproject.toml",
@@ -230,9 +252,15 @@ class TestMain:
 
     def test_failed_execution(
         self,
-        mock_main_dependencies: tuple[MagicMock, MagicMock, MagicMock, MagicMock],
+        mock_main_dependencies: tuple[
+            MagicMock,
+            MagicMock,
+            MagicMock,
+            MagicMock,
+            MagicMock,
+        ],
     ) -> None:
-        mock_parse_args, mock_get_alias, _, mock_run = mock_main_dependencies
+        mock_parse_args, mock_get_alias, _, _, mock_run = mock_main_dependencies
 
         mock_parse_args.return_value = MagicMock(
             pyproject_toml="pyproject.toml",
@@ -248,9 +276,15 @@ class TestMain:
 
     def test_execution_exception(
         self,
-        mock_main_dependencies: tuple[MagicMock, MagicMock, MagicMock, MagicMock],
+        mock_main_dependencies: tuple[
+            MagicMock,
+            MagicMock,
+            MagicMock,
+            MagicMock,
+            MagicMock,
+        ],
     ) -> None:
-        mock_parse_args, mock_get_alias, _, mock_run = mock_main_dependencies
+        mock_parse_args, mock_get_alias, _, _, mock_run = mock_main_dependencies
 
         mock_parse_args.return_value = MagicMock(
             pyproject_toml="pyproject.toml",
@@ -266,40 +300,141 @@ class TestMain:
 
     def test_no_alias_provided(
         self,
-        mock_main_dependencies: tuple[MagicMock, MagicMock, MagicMock, MagicMock],
+        mock_main_dependencies: tuple[
+            MagicMock,
+            MagicMock,
+            MagicMock,
+            MagicMock,
+            MagicMock,
+        ],
     ) -> None:
-        mock_parse_args, _, mock_get_all, _ = mock_main_dependencies
+        mock_parse_args, _, mock_get_all, mock_find_pyproject, _ = (
+            mock_main_dependencies
+        )
 
         mock_parse_args.return_value = MagicMock(
             pyproject_toml="pyproject.toml",
             alias=None,
             extra_args=[],
+        )
+        # Mock find_pyproject_toml to return a specific path
+        mock_find_pyproject.return_value = (
+            "/home/thomas/work/pyproject-aliases/pyproject.toml"
         )
         mock_get_all.return_value = {"test-alias": "echo 'Hello, World!'"}
 
         with pytest.raises(SystemExit) as excinfo:
             main()
         assert excinfo.value.code == 1
-        mock_get_all.assert_called_once_with("pyproject.toml")
+        mock_get_all.assert_called_once_with(
+            "/home/thomas/work/pyproject-aliases/pyproject.toml",
+        )
 
     def test_no_aliases_defined(
         self,
-        mock_main_dependencies: tuple[MagicMock, MagicMock, MagicMock, MagicMock],
+        mock_main_dependencies: tuple[
+            MagicMock,
+            MagicMock,
+            MagicMock,
+            MagicMock,
+            MagicMock,
+        ],
     ) -> None:
         """Test when no aliases are defined in the configuration."""
-        mock_parse_args, _, mock_get_all, _ = mock_main_dependencies
+        mock_parse_args, _, mock_get_all, mock_find_pyproject, _ = (
+            mock_main_dependencies
+        )
 
         mock_parse_args.return_value = MagicMock(
             pyproject_toml="pyproject.toml",
             alias=None,
             extra_args=[],
         )
+        # Mock find_pyproject_toml to return a specific path
+        mock_find_pyproject.return_value = (
+            "/home/thomas/work/pyproject-aliases/pyproject.toml"
+        )
         mock_get_all.return_value = {}  # Empty aliases dictionary
 
         with pytest.raises(SystemExit) as excinfo:
             main()
         assert excinfo.value.code == 1
-        mock_get_all.assert_called_once_with("pyproject.toml")
+        mock_get_all.assert_called_once_with(
+            "/home/thomas/work/pyproject-aliases/pyproject.toml",
+        )
+
+
+class TestFindPyprojectToml:
+    def test_find_in_current_dir(self, fs: FakeFilesystem) -> None:
+        """Test finding pyproject.toml in the current directory."""
+        # Create fake directory structure
+        fs.create_dir("/fake/current/dir")
+        fs.create_file("/fake/current/dir/pyproject.toml")
+
+        # Set the current working directory
+        fs.cwd = "/fake/current/dir"
+
+        # Test
+        result = find_pyproject_toml()
+
+        # Verify
+        assert result == "/fake/current/dir/pyproject.toml"
+
+    def test_find_in_parent_dir(self, fs: FakeFilesystem) -> None:
+        """Test finding pyproject.toml in a parent directory."""
+        # Create fake directory structure with pyproject.toml in parent dir
+        fs.create_dir("/fake/current/dir")
+        fs.create_file("/fake/current/pyproject.toml")
+
+        # Set the current working directory
+        fs.cwd = "/fake/current/dir"
+
+        # Test
+        result = find_pyproject_toml()
+
+        # Verify
+        assert result == "/fake/current/pyproject.toml"
+
+    def test_find_nothing(self, fs: FakeFilesystem) -> None:
+        """Test when no pyproject.toml is found."""
+        # Create fake directory structure without any pyproject.toml
+        fs.create_dir("/fake/current/dir")
+
+        # Set the current working directory
+        fs.cwd = "/fake/current/dir"
+
+        # Test
+        result = find_pyproject_toml()
+
+        # Verify
+        assert result is None
+
+    def test_specific_starting_dir(self, fs: FakeFilesystem) -> None:
+        """Test finding pyproject.toml with a specific starting directory."""
+        # Create fake directory structure
+        fs.create_dir("/specific/dir")
+        fs.create_file("/specific/dir/pyproject.toml")
+
+        # Test
+        result = find_pyproject_toml(Path("/specific/dir"))
+
+        # Verify
+        assert result == "/specific/dir/pyproject.toml"
+
+    def test_finds_in_root_dir(self, fs: FakeFilesystem) -> None:
+        """Test finding pyproject.toml in a root directory."""
+        # Create fake directory structure
+        fs.create_dir("/nested/deeply/folder")
+        fs.create_file("/pyproject.toml")
+
+        # Set the current working directory
+        fs.cwd = "/nested/deeply/folder"
+
+        # Test
+        result = find_pyproject_toml()
+
+        # Verify
+        assert result == "/pyproject.toml"
 
 
 if __name__ == "__main__":

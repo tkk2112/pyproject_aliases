@@ -4,6 +4,7 @@ import shlex
 import subprocess
 import sys
 import tomllib
+from pathlib import Path
 from typing import cast
 
 
@@ -67,11 +68,30 @@ def get_alias_from_config(config_file: str, alias_name: str) -> str:
     sys.exit(1)  # This exits, so we never reach the implicit return None
 
 
+def find_pyproject_toml(starting_dir: Path | None = None) -> str | None:
+    if starting_dir is None:
+        starting_dir = Path.cwd()
+    for parent in [starting_dir] + list(starting_dir.parents):
+        candidate = parent / "pyproject.toml"
+        if candidate.is_file():
+            return str(candidate)
+    return None
+
+
 def main() -> None:
     args = parse_args()
 
+    project_file = args.pyproject_toml
+    if project_file == "pyproject.toml":
+        found = find_pyproject_toml()
+        if found:
+            project_file = found
+        else:
+            print("Could not locate a pyproject.toml file.", file=sys.stderr)
+            sys.exit(1)
+
     if args.alias is None:
-        aliases = get_all_aliases(args.pyproject_toml)
+        aliases = get_all_aliases(project_file)
         if aliases:
             print("You must choose one of the available aliases:")
             for cmd_name, cmd_value in aliases.items():
@@ -80,7 +100,7 @@ def main() -> None:
             print("No aliases defined in the configuration file.")
         sys.exit(1)
 
-    alias_to_run = get_alias_from_config(args.pyproject_toml, args.alias)
+    alias_to_run = get_alias_from_config(project_file, args.alias)
 
     if args.extra_args:
         extra_args_str = shlex.join(args.extra_args)
