@@ -11,7 +11,7 @@ repos:
           - chore
           - refactor
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.6.15
+    rev: 0.6.16
     hooks:
       - id: uv-sync
         args: ["--locked", "--all-packages"]
