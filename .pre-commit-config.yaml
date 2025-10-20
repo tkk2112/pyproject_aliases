@@ -22,7 +22,7 @@ repos:
         args: [--fix]
       - id: ruff-format
   - repo: https://github.com/PyCQA/isort
-    rev: 6.1.0
+    rev: 7.0.0
     hooks:
       - id: isort
   - repo: https://github.com/pre-commit/mirrors-mypy
@@ -48,6 +48,6 @@ repos:
         args: [--fix]
       - id: ruff-format
   - repo: https://github.com/PyCQA/isort
-    rev: 6.1.0
+    rev: 7.0.0
     hooks:
       - id: isort
